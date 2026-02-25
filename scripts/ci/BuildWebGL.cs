@@ -11,6 +11,9 @@ namespace CI
     {
         public static void Build()
         {
+            // Some projects enforce HybridCLR installation in build processors.
+            EnsureHybridCLRInstalled();
+
             // Optional pre-steps controlled by env vars
             RunOptional("ENABLE_HYBRIDCLR", "HYBRIDCLR_METHOD");
             RunOptional("ENABLE_YOOASSET", "YOOASSET_METHOD");
@@ -88,6 +91,37 @@ namespace CI
             }
 
             method.Invoke(null, null);
+        }
+
+        private static void EnsureHybridCLRInstalled()
+        {
+            var controllerType = FindType("HybridCLR.Editor.Installer.InstallerController");
+            if (controllerType == null)
+            {
+                return;
+            }
+
+            var instance = Activator.CreateInstance(controllerType);
+            if (instance == null)
+            {
+                return;
+            }
+
+            var hasInstalledMethod = controllerType.GetMethod("HasInstalledHybridCLR", BindingFlags.Public | BindingFlags.Instance);
+            var installMethod = controllerType.GetMethod("InstallDefaultHybridCLR", BindingFlags.Public | BindingFlags.Instance);
+
+            if (hasInstalledMethod == null || installMethod == null)
+            {
+                return;
+            }
+
+            var installed = hasInstalledMethod.Invoke(instance, null) as bool?;
+            if (installed == true)
+            {
+                return;
+            }
+
+            installMethod.Invoke(instance, null);
         }
 
         private static Type FindType(string typeName)
