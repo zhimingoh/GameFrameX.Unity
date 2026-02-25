@@ -1,0 +1,75 @@
+name: Unity WebGL -> Vercel
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      enable_hybridclr:
+        description: "Enable HybridCLR step"
+        required: false
+        default: "false"
+      enable_yooasset:
+        description: "Enable YooAsset step"
+        required: false
+        default: "false"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      UNITY_VERSION: 2019.4.40f1
+      BUILD_TARGET: WebGL
+      BUILD_PATH: Build
+      BUILD_NAME: WebGL
+      BUILD_METHOD: CI.BuildWebGL.Build
+      ENABLE_HYBRIDCLR: ${{ github.event.inputs.enable_hybridclr || 'false' }}
+      ENABLE_YOOASSET: ${{ github.event.inputs.enable_yooasset || 'false' }}
+      HYBRIDCLR_METHOD: "HybridCLR.Editor.Commands.PrebuildCommand.GenerateAll"
+      YOOASSET_METHOD: "YooAsset.Editor.AssetBundleBuilder.BuildBundles"
+      CDN_BASE_URL: ${{ secrets.CDN_BASE_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Unity Build (WebGL)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          ENABLE_HYBRIDCLR: ${{ env.ENABLE_HYBRIDCLR }}
+          ENABLE_YOOASSET: ${{ env.ENABLE_YOOASSET }}
+          HYBRIDCLR_METHOD: ${{ env.HYBRIDCLR_METHOD }}
+          YOOASSET_METHOD: ${{ env.YOOASSET_METHOD }}
+          CDN_BASE_URL: ${{ env.CDN_BASE_URL }}
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: ${{ env.BUILD_TARGET }}
+          buildMethod: ${{ env.BUILD_METHOD }}
+          buildName: ${{ env.BUILD_NAME }}
+          buildsPath: ${{ env.BUILD_PATH }}
+          allowDirtyBuild: true
+
+      - name: Upload WebGL Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebGL
+          path: ${{ env.BUILD_PATH }}/${{ env.BUILD_NAME }}
+          if-no-files-found: error
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: .
+          vercel-args: "--prod"
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

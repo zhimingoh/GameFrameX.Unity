@@ -18,3 +18,4 @@ Assets/StreamingAssets/build_info.meta
 HybridCLRData/
 .DS_Store
 Assets/Bundles/AOTCode/*
+.vercel

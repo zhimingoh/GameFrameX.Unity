@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "framework": null,
+  "builds": [
+    {
+      "src": "Build/WebGL/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/Build/WebGL/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/Build/WebGL/(.*)\\.wasm",
+      "headers": [
+        { "key": "Content-Type", "value": "application/wasm" }
+      ]
+    },
+    {
+      "source": "/Build/WebGL/(.*)\\.data",
+      "headers": [
+        { "key": "Content-Type", "value": "application/octet-stream" }
+      ]
+    }
+  ]
+}
